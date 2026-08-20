@@ -13,6 +13,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Public: no Google token. Kubernetes / you can check "is this process up?"
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        ok: true,
+        service: "api-gateway",
+        port: PORT,
+    });
+});
+
 //proxy options
 const proxyOptions = {
     proxyReqPathResolver: (req) => {
