@@ -3,18 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/server.js",
- "scripts": {
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "build": "babel src --out-dir dist --copy-files",
-    "prestart": "npm run build"
-
+    "dev": "nodemon src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "canva-microservices": "file:../..",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
