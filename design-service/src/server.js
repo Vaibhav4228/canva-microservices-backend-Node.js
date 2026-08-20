@@ -21,13 +21,21 @@ app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        ok: true,
+        service: "design-service",
+        port: PORT,
+        mongo: mongoose.connection.readyState === 1,
+    });
+});
 
 app.use("/api/designs", designRoutes);
 
 async function startServer() {
     try {
         app.listen(PORT, () => {
-            console.log(`Design servicerce Server is running on port ${PORT}`);
+            console.log(`Design service running on port ${PORT}`);
         });
     } catch (error) {
         console.error('Error starting server:', error);

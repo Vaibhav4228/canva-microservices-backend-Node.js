@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv/lib/main").config();
 const mongoose = require("mongoose");
 
 async function ping() {

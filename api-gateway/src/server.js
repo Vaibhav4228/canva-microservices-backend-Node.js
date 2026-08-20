@@ -28,53 +28,39 @@ const proxyOptions = {
     proxyReqPathResolver: (req) => {
         return req.originalUrl.replace(/^\/v1/, "/api");
     },
-    proxyErrorHandler: (err, res, next) => {
-        res.status(500).json({
-            message: "Internal server error!",
-            error: err.message,
-        });
-    },
 };
 
-app.use(
-    "/v1/designs",
-    authMiddleware,
-    proxy(process.env.DESIGN, {
+function proxyTo(target, extra = {}) {
+    return proxy(target, {
         ...proxyOptions,
-    })
-);
+        ...extra,
+        proxyErrorHandler: (err, res) => {
+            console.error(`Proxy failed -> ${target}`, err.message);
+            res.status(502).json({
+                success: false,
+                message: "Service unavailable",
+                target,
+                error: err.message,
+            });
+        },
+    });
+}
+
+app.use("/v1/designs", authMiddleware, proxyTo(process.env.DESIGN));
 
 app.use(
     "/v1/media/upload",
     authMiddleware,
-    proxy(process.env.UPLOAD, {
-        ...proxyOptions,
-        parseReqBody: false,
-    })
+    proxyTo(process.env.UPLOAD, { parseReqBody: false })
 );
 
-app.use(
-    "/v1/media",
-    authMiddleware,
-    proxy(process.env.UPLOAD, {
-        ...proxyOptions,
-        parseReqBody: true,
-    })
-);
+app.use("/v1/media", authMiddleware, proxyTo(process.env.UPLOAD, { parseReqBody: true }));
 
-app.use(
-    "/v1/subscription",
-    authMiddleware,
-    proxy(process.env.SUBSCRIPTION, {
-        ...proxyOptions,
-    })
-);
+app.use("/v1/subscription", authMiddleware, proxyTo(process.env.SUBSCRIPTION));
 
 app.listen(PORT, () => {
-    console.log(`API Gateway is running on port ${PORT}`);
-    console.log(`DESIGN Service is running on port ${process.env.DESIGN}`);
-    console.log(`UPLOAD Service is running on port ${process.env.UPLOAD}`);
-    console.log(
-        `SUBSCRIPTION Service is running on port ${process.env.SUBSCRIPTION}`
-    );
+    console.log(`API Gateway running on ${PORT}`);
+    console.log(`Proxy /v1/designs -> ${process.env.DESIGN}`);
+    console.log(`Proxy /v1/media -> ${process.env.UPLOAD}`);
+    console.log(`Proxy /v1/subscription -> ${process.env.SUBSCRIPTION}`);
 });
