@@ -4,6 +4,7 @@ const proxy = require("express-http-proxy");
 const cors = require("cors");
 const helmet = require("helmet");
 const authMiddleware = require("./middleware/auth-middleware");
+const slidingWindowRateLimit = require("./middleware/rate-limit");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,6 +21,8 @@ app.get("/health", (req, res) => {
         port: PORT,
     });
 });
+
+app.use("/v1", slidingWindowRateLimit);
 
 const proxyOptions = {
     proxyReqPathResolver: (req) => {
