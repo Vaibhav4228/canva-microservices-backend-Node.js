@@ -4,6 +4,7 @@ const {
   setCachedDesigns,
   invalidateDesignsCache,
 } = require("../utils/redis");
+const { emitDesignEvent } = require("../utils/kafka");
 
 exports.getUserDesigns = async (req, res) => {
   try {
@@ -82,6 +83,11 @@ exports.saveDesign = async (req, res) => {
       design.updatedAt = Date.now();
       const updatedDesign = await design.save();
       await invalidateDesignsCache(userId);
+      await emitDesignEvent("design.saved", {
+        designId: updatedDesign._id.toString(),
+        userId,
+        name: updatedDesign.name,
+      });
 
       return res.status(200).json({
         success: true,
@@ -100,6 +106,11 @@ exports.saveDesign = async (req, res) => {
 
     const saveDesign = await newDesign.save();
     await invalidateDesignsCache(userId);
+    await emitDesignEvent("design.saved", {
+      designId: saveDesign._id.toString(),
+      userId,
+      name: saveDesign.name,
+    });
     return res.status(200).json({
       success: true,
       data: saveDesign,
@@ -128,6 +139,11 @@ exports.deleteDesign = async (req, res) => {
 
     await Design.deleteOne({ _id: designId });
     await invalidateDesignsCache(userId);
+    await emitDesignEvent("design.deleted", {
+      designId,
+      userId,
+      name: design.name,
+    });
 
     res.status(200).json({
       success: true,
