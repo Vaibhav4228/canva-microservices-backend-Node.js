@@ -2,12 +2,11 @@
   "name": "api-gateway",
   "version": "1.0.0",
   "description": "",
- "main": "src/server.js",
- "scripts": {
+  "main": "src/server.js",
+  "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
     "dev": "node ./node_modules/nodemon/bin/nodemon.js src/server.js"
-
   },
   "keywords": [],
   "author": "",
@@ -20,6 +19,7 @@
     "google-auth-library": "^9.15.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "opossum": "^10.0.0"
   }
 }

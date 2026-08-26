@@ -6,6 +6,11 @@ const helmet = require("helmet");
 const authMiddleware = require("./middleware/auth-middleware");
 const slidingWindowRateLimit = require("./middleware/rate-limit");
 const log = require("./utils/log");
+const {
+  createProxyBreaker,
+  withCircuit,
+  createDemoBreaker,
+} = require("./utils/circuit-breaker");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -52,6 +57,24 @@ app.get("/ready", async (req, res) => {
   });
 });
 
+const demoBreaker = createDemoBreaker(
+  process.env.CIRCUIT_BREAKER_DEMO_URL || "http://127.0.0.1:5999/ready"
+);
+
+app.get("/breaker-demo", async (req, res) => {
+  try {
+    await demoBreaker.fire();
+    res.status(200).json({ success: true, circuit: "closed" });
+  } catch (e) {
+    res.status(503).json({
+      success: false,
+      message: demoBreaker.opened ? "Circuit open" : "Call failed",
+      circuit: demoBreaker.opened ? "open" : "closed",
+      error: e.message,
+    });
+  }
+});
+
 app.use("/v1", slidingWindowRateLimit);
 
 const proxyOptions = {
@@ -76,7 +99,13 @@ function proxyTo(target, extra = {}) {
   });
 }
 
-app.use("/v1/designs", authMiddleware, proxyTo(process.env.DESIGN));
+const designBreaker = createProxyBreaker("design");
+
+app.use(
+  "/v1/designs",
+  authMiddleware,
+  withCircuit(designBreaker, proxyTo(process.env.DESIGN))
+);
 
 app.use(
   "/v1/media/upload",
