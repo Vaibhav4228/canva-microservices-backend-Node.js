@@ -4,14 +4,16 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const helmet = require("helmet");
 const subscriptionRoutes = require("./routes/subscription-routes");
+const log = require("./utils/log");
 
 const app = express();
 const PORT = process.env.PORT || 5003;
+const SERVICE = "subscription-service";
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("Error connecting to MongoDB:", err));
+  .then(() => log(SERVICE, "mongo_connected"))
+  .catch((err) => log(SERVICE, "mongo_error", { error: err.message }));
 
 app.use(cors());
 app.use(helmet());
@@ -21,14 +23,22 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/health", (req, res) => {
   res.status(200).json({
     ok: true,
-    service: "subscription-service",
+    service: SERVICE,
     port: PORT,
-    mongo: mongoose.connection.readyState === 1,
+  });
+});
+
+app.get("/ready", (req, res) => {
+  const mongo = mongoose.connection.readyState === 1;
+  res.status(mongo ? 200 : 503).json({
+    ready: mongo,
+    service: SERVICE,
+    mongo,
   });
 });
 
 app.use("/api/subscription", subscriptionRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Subscription service running on port ${PORT}`);
+  log(SERVICE, "listening", { port: PORT });
 });

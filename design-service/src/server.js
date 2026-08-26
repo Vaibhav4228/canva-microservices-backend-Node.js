@@ -5,14 +5,16 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
 const designRoutes = require("./routes/design-routes");
+const log = require("./utils/log");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
+const SERVICE = "design-service";
 
 mongoose.connect(process.env.MONGO_URI).then(() => {
-    console.log('Connected to MongoDB');
+    log(SERVICE, "mongo_connected");
 }).catch((err) => {
-    console.error('Error connecting to MongoDB:', err);
+    log(SERVICE, "mongo_error", { error: err.message });
 });
 
 
@@ -24,9 +26,17 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/health", (req, res) => {
     res.status(200).json({
         ok: true,
-        service: "design-service",
+        service: SERVICE,
         port: PORT,
-        mongo: mongoose.connection.readyState === 1,
+    });
+});
+
+app.get("/ready", (req, res) => {
+    const mongo = mongoose.connection.readyState === 1;
+    res.status(mongo ? 200 : 503).json({
+        ready: mongo,
+        service: SERVICE,
+        mongo,
     });
 });
 
@@ -35,7 +45,7 @@ app.use("/api/designs", designRoutes);
 async function startServer() {
     try {
         app.listen(PORT, () => {
-            console.log(`Design service running on port ${PORT}`);
+            log(SERVICE, "listening", { port: PORT });
         });
     } catch (error) {
         console.error('Error starting server:', error);
