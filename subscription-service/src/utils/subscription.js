@@ -2,6 +2,8 @@ const Subscription = require("../models/subscription");
 
 const FREE_AI_LIMIT = Number(process.env.FREE_AI_LIMIT || 5);
 const PREMIUM_AI_LIMIT = Number(process.env.PREMIUM_AI_LIMIT || 200);
+const PREMIUM_AMOUNT = Number(process.env.PREMIUM_AMOUNT || 49900);
+const PREMIUM_CURRENCY = process.env.PREMIUM_CURRENCY || "INR";
 
 function startOfMonth(date = new Date()) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -25,11 +27,15 @@ function toPublic(subscription) {
   const remaining = limit < 0 ? null : Math.max(0, limit - subscription.aiUsed);
   return {
     isPremium: subscription.isPremium,
+    plan: subscription.isPremium ? "premium" : "free",
     premiumSince: subscription.premiumSince,
     paymentProvider: subscription.paymentProvider || null,
     aiUsed: subscription.aiUsed || 0,
     aiLimit: limit,
     aiRemaining: remaining,
+    usagePeriodStart: subscription.usagePeriodStart,
+    premiumAmount: PREMIUM_AMOUNT,
+    currency: PREMIUM_CURRENCY,
   };
 }
 
