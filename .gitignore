@@ -54,5 +54,6 @@ docker-compose.override.yml
 
 # Python AI service
 ai-service/.venv/
-ai-service/__pycache__/
+ai-service/**/__pycache__/
 ai-service/*.pyc
+ai-service/data/

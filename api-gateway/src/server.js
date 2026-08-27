@@ -117,11 +117,20 @@ app.use("/v1/media", authMiddleware, proxyTo(process.env.UPLOAD, { parseReqBody:
 
 app.use("/v1/subscription", authMiddleware, proxyTo(process.env.SUBSCRIPTION));
 
+app.use(
+  "/v1/ai",
+  authMiddleware,
+  proxyTo(process.env.AI, {
+    proxyReqPathResolver: (req) => req.originalUrl.replace(/^\/v1\/ai/, "") || "/",
+  })
+);
+
 app.listen(PORT, () => {
   log(SERVICE, "listening", {
     port: PORT,
     design: process.env.DESIGN,
     upload: process.env.UPLOAD,
     subscription: process.env.SUBSCRIPTION,
+    ai: process.env.AI,
   });
 });
