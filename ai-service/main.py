@@ -5,17 +5,22 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 
 from models import (
+    GenerateRequest,
+    GenerateResponse,
     IngestRequest,
     IngestResponse,
+    JobStatusResponse,
     PingRequest,
     PingResponse,
     RagQueryRequest,
     RagQueryResponse,
+    RembgRequest,
+    RembgResponse,
     VectorInfoResponse,
 )
 from ingest import save_ingest_file
-from kafka_events import emit_rag_ingest
-from rag_graph import rag_query
+from jobs import create_job, get_job
+from kafka_events import emit_ai_job, emit_rag_ingest
 from vector_store import info as vector_info
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
@@ -23,7 +28,7 @@ load_dotenv(Path(__file__).resolve().parent / ".env")
 PORT = int(os.getenv("PORT", "5004"))
 SERVICE = "ai-service"
 
-app = FastAPI(title="Canva AI service")
+app = FastAPI(title="Canva AI service")  # :5004
 
 
 @app.get("/health")
@@ -50,8 +55,49 @@ def ping(body: PingRequest):
 
 @app.post("/rag/query", response_model=RagQueryResponse)
 def query_rag(body: RagQueryRequest):
+    from rag_graph import rag_query
+
     try:
         return RagQueryResponse(**rag_query(body.query, body.k))
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@app.post("/generate", response_model=GenerateResponse)
+def generate(body: GenerateRequest):
+    try:
+        job = create_job(body.prompt)
+        queued = emit_ai_job({"jobId": job["jobId"], "prompt": body.prompt})
+        return GenerateResponse(jobId=job["jobId"], status=job["status"], queued=queued)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+
+
+@app.get("/jobs/{job_id}", response_model=JobStatusResponse)
+def job_status(job_id: str):
+    try:
+        job = get_job(job_id)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    if not job:
+        raise HTTPException(status_code=404, detail="job not found")
+    return JobStatusResponse(
+        jobId=job["jobId"],
+        status=job["status"],
+        url=job.get("url"),
+        provider=job.get("provider"),
+        error=job.get("error"),
+    )
+
+
+@app.post("/edit/rembg", response_model=RembgResponse)
+def edit_rembg(body: RembgRequest):
+    from rembg_edit import remove_background
+
+    try:
+        return RembgResponse(url=remove_background(url=body.url, image=body.image))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e)) from e
 

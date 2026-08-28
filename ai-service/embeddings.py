@@ -14,7 +14,7 @@ def get_model() -> SentenceTransformer:
         name = os.getenv("EMBEDDING_MODEL") or DEFAULT_MODEL
         log("embedding_load", model=name)
         _model = SentenceTransformer(name)
-        log("embedding_ready", model=name, dim=_model.get_sentence_embedding_dimension())
+        log("embedding_ready", model=name, dim=_model.get_embedding_dimension())
     return _model
 
 
