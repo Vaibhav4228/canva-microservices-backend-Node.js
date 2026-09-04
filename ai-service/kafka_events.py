@@ -11,6 +11,18 @@ TOPIC_JOBS = "ai.jobs"
 _client = None
 
 
+def _env(name: str) -> str:
+    return (os.getenv(name) or "").strip().strip('"')
+
+
+def kafka_enabled() -> bool:
+    """False when explicitly disabled (e.g. Render). True otherwise — try Kafka first."""
+    flag = _env("KAFKA_DISABLED").lower()
+    if flag in {"1", "true", "yes", "on"}:
+        return False
+    return True
+
+
 def _get_producer():
     global _client
     if _client is None:
@@ -26,6 +38,9 @@ def _get_producer():
 
 
 def emit_rag_ingest(payload: dict) -> bool:
+    if not kafka_enabled():
+        log("kafka_skipped", event="rag.ingest", reason="KAFKA_DISABLED")
+        return False
     try:
         producer = _get_producer()
         producer.send(
@@ -45,6 +60,9 @@ def emit_rag_ingest(payload: dict) -> bool:
 
 
 def emit_ai_job(payload: dict) -> bool:
+    if not kafka_enabled():
+        log("kafka_skipped", event="ai.jobs", reason="KAFKA_DISABLED")
+        return False
     try:
         producer = _get_producer()
         producer.send(

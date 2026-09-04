@@ -25,6 +25,7 @@ from models import (
     VectorInfoResponse,
 )
 from ingest import save_ingest_file
+from inline_tasks import schedule_image_job, schedule_rag_ingest
 from jobs import create_job, get_job
 from kafka_events import emit_ai_job, emit_rag_ingest
 from vector_store import info as vector_info
@@ -86,23 +87,22 @@ def generate(body: GenerateRequest):
     try:
         job = create_job(body.prompt)
         queued = emit_ai_job({"jobId": job["jobId"], "prompt": body.prompt})
+        mode = "kafka" if queued else "inline"
+        if not queued:
+            schedule_image_job(job["jobId"], body.prompt)
+            queued = True
         log(
             "generate_accepted",
             jobId=job["jobId"],
             queued=queued,
+            mode=mode,
             promptLen=len(body.prompt),
         )
-        if queued:
+        if mode == "kafka":
             log(
                 "generate_waiting_worker",
                 jobId=job["jobId"],
                 hint="npm run dev:image-worker",
-            )
-        else:
-            log(
-                "generate_not_queued",
-                jobId=job["jobId"],
-                hint="Redpanda/Kafka down? npm run kafka:up",
             )
         return GenerateResponse(jobId=job["jobId"], status=job["status"], queued=queued)
     except Exception as e:
@@ -124,7 +124,7 @@ def job_status(job_id: str):
     if polls == 1 or polls % 15 == 0 or status != "pending":
         extra = {}
         if status == "pending":
-            extra["hint"] = "still pending — start npm run dev:image-worker"
+            extra["hint"] = "still processing (Kafka worker or inline fallback)"
         log("job_poll", jobId=job_id, status=status, polls=polls, **extra)
     return JobStatusResponse(
         jobId=job["jobId"],
@@ -168,6 +168,9 @@ def ingest(body: IngestRequest):
             "bytes": path.stat().st_size,
         }
     )
+    if not queued:
+        schedule_rag_ingest(str(path), body.source)
+        queued = True
     return IngestResponse(
         ok=True,
         source=body.source,

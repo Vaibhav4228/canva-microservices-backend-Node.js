@@ -10,8 +10,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
+from inline_tasks import process_rag_ingest  # noqa: E402
 from log import log  # noqa: E402
-from rag_index import index_file  # noqa: E402
 
 TOPIC = "rag.ingest"
 brokers = (os.getenv("KAFKA_BROKERS") or "localhost:9092").split(",")
@@ -31,12 +31,5 @@ for message in consumer:
     payload = message.value or {}
     path = payload.get("path")
     source = payload.get("source") or "manual"
-    try:
-        result = index_file(path, source)
-        consumer.commit()
-        log("rag_worker_ok", **result)
-    except (FileNotFoundError, ValueError, TypeError) as e:
-        log("rag_worker_skip", path=path, source=source, error=str(e))
-        consumer.commit()
-    except Exception as e:
-        log("rag_worker_failed", path=path, source=source, error=str(e))
+    process_rag_ingest(path, source)
+    consumer.commit()
