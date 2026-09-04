@@ -68,6 +68,22 @@ Compose overrides internal URLs so services talk over the Docker network. Your `
 
 **Google OAuth:** add your Vercel URL to authorized origins and redirect URIs in Google Cloud Console.
 
+### Manual web service (not Blueprint)
+
+If you create each service with **New Web Service**, use these settings or Docker build uses the wrong folder and `npm ci` fails:
+
+| Field | Example (gateway) |
+|---|---|
+| **Runtime** | Docker |
+| **Root Directory** | `api-gateway` |
+| **Dockerfile Path** | `Dockerfile` |
+| **Build Command** | leave empty |
+| **Start Command** | leave empty |
+
+Repeat with `design-service`, `upload-service`, `subscription-service`, `ai-service` as root directory.
+
+**Do not** set Root Directory empty and Dockerfile `api-gateway/Dockerfile` — Docker context becomes repo root and `package-lock.json` is not found.
+
 ---
 
 ## 4. Frontend (Vercel)
