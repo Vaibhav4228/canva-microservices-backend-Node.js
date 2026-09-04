@@ -5,6 +5,16 @@ from urllib.request import Request, urlopen
 from log import log
 
 MAX_BYTES = 8 * 1024 * 1024
+_u2net = None
+
+
+def _session():
+    global _u2net
+    if _u2net is None:
+        from rembg import new_session
+
+        _u2net = new_session("u2net")
+    return _u2net
 
 
 def _decode_image_field(image: str) -> bytes:
@@ -38,7 +48,8 @@ def remove_background(*, url: str | None = None, image: str | None = None) -> st
 
     from rembg import remove
 
-    out = remove(src)
+    session = _session()
+    out = remove(src, session=session)
     encoded = base64.b64encode(out).decode("ascii")
     log("rembg_ok", inBytes=len(src), outBytes=len(out))
     return f"data:image/png;base64,{encoded}"

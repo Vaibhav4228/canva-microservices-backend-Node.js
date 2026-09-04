@@ -1,8 +1,12 @@
+from collections import defaultdict
 from pathlib import Path
+import logging
 import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+
+from log import log
 
 from models import (
     GenerateRequest,
@@ -16,6 +20,8 @@ from models import (
     RagQueryResponse,
     RembgRequest,
     RembgResponse,
+    TemplateFromPromptRequest,
+    TemplateFromPromptResponse,
     VectorInfoResponse,
 )
 from ingest import save_ingest_file
@@ -29,6 +35,18 @@ PORT = int(os.getenv("PORT", "5004"))
 SERVICE = "ai-service"
 
 app = FastAPI(title="Canva AI service")  # :5004
+_job_polls = defaultdict(int)
+
+
+class _QuietJobPolls(logging.Filter):
+    def filter(self, record):
+        try:
+            return "/jobs/" not in record.getMessage()
+        except Exception:
+            return True
+
+
+logging.getLogger("uvicorn.access").addFilter(_QuietJobPolls())
 
 
 @app.get("/health")
@@ -68,8 +86,27 @@ def generate(body: GenerateRequest):
     try:
         job = create_job(body.prompt)
         queued = emit_ai_job({"jobId": job["jobId"], "prompt": body.prompt})
+        log(
+            "generate_accepted",
+            jobId=job["jobId"],
+            queued=queued,
+            promptLen=len(body.prompt),
+        )
+        if queued:
+            log(
+                "generate_waiting_worker",
+                jobId=job["jobId"],
+                hint="npm run dev:image-worker",
+            )
+        else:
+            log(
+                "generate_not_queued",
+                jobId=job["jobId"],
+                hint="Redpanda/Kafka down? npm run kafka:up",
+            )
         return GenerateResponse(jobId=job["jobId"], status=job["status"], queued=queued)
     except Exception as e:
+        log("generate_failed", error=str(e))
         raise HTTPException(status_code=503, detail=str(e)) from e
 
 
@@ -81,13 +118,32 @@ def job_status(job_id: str):
         raise HTTPException(status_code=503, detail=str(e)) from e
     if not job:
         raise HTTPException(status_code=404, detail="job not found")
+    _job_polls[job_id] += 1
+    polls = _job_polls[job_id]
+    status = job["status"]
+    if polls == 1 or polls % 15 == 0 or status != "pending":
+        extra = {}
+        if status == "pending":
+            extra["hint"] = "still pending — start npm run dev:image-worker"
+        log("job_poll", jobId=job_id, status=status, polls=polls, **extra)
     return JobStatusResponse(
         jobId=job["jobId"],
-        status=job["status"],
+        status=status,
         url=job.get("url"),
         provider=job.get("provider"),
         error=job.get("error"),
     )
+
+
+@app.post("/templates/from-prompt", response_model=TemplateFromPromptResponse)
+def templates_from_prompt(body: TemplateFromPromptRequest):
+    from template_layout import template_from_prompt
+
+    try:
+        result = template_from_prompt(body.prompt)
+        return TemplateFromPromptResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 @app.post("/edit/rembg", response_model=RembgResponse)

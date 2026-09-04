@@ -7,8 +7,10 @@ const router = express.Router();
 router.use(authenticatedRequest);
 
 router.get("/", designController.getUserDesigns);
-router.get("/:id", designController.getUserDesignsByID);
 router.post("/", designController.saveDesign);
+router.post("/:id/presence", designController.beatPresence);
+router.get("/:id/presence", designController.listPresence);
+router.get("/:id", designController.getUserDesignsByID);
 router.delete("/:id", designController.deleteDesign);
 
 module.exports = router;

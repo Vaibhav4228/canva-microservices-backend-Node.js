@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const { uploadMedia, getAllMediasByUser } = require("../controllers/upload-controller");
+const { uploadMedia, saveMediaFromUrl, getAllMediasByUser } = require("../controllers/upload-controller");
 const authenticatedRequest = require("../middleware/auth-middleware");
 
 const router = express.Router();
@@ -23,6 +23,8 @@ router.post("/upload", authenticatedRequest, (req, res, next) => {
     next();
   });
 }, uploadMedia);
+
+router.post("/from-url", authenticatedRequest, saveMediaFromUrl);
 
 router.get("/get", authenticatedRequest, getAllMediasByUser);
 

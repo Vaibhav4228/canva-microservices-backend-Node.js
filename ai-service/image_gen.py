@@ -75,10 +75,12 @@ def generate_pollinations(prompt: str) -> str:
 
 def generate_image(prompt: str) -> dict:
     if hf_token():
+        log("image_try", provider="hf", model=hf_model())
         try:
             return {"url": generate_hf(prompt), "provider": "hf"}
         except Exception as e:
             log("hf_failed", error=str(e)[:200])
+    log("image_try", provider="pollinations")
     return {
         "url": generate_pollinations(prompt),
         "provider": "pollinations",

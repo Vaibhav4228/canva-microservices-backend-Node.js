@@ -157,3 +157,59 @@ exports.deleteDesign = async (req, res) => {
     });
   }
 };
+
+exports.beatPresence = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const designId = req.params.id;
+    const design = await Design.findOne({ _id: designId, userId }).select("_id");
+    if (!design) {
+      return res.status(404).json({
+        success: false,
+        message: "Design not found! or you don't have permission to view it.",
+      });
+    }
+
+    const { heartbeat } = require("../utils/presence");
+    const result = await heartbeat(designId, req.user, req.body?.tabId);
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (e) {
+    console.error("Presence heartbeat failed", e);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update presence",
+    });
+  }
+};
+
+exports.listPresence = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const designId = req.params.id;
+    const design = await Design.findOne({ _id: designId, userId }).select("_id");
+    if (!design) {
+      return res.status(404).json({
+        success: false,
+        message: "Design not found! or you don't have permission to view it.",
+      });
+    }
+
+    const { listEditors } = require("../utils/presence");
+    const { getRedis } = require("../utils/redis");
+    const editors = await listEditors(designId);
+    res.status(200).json({
+      success: true,
+      editors,
+      redis: Boolean(getRedis()),
+    });
+  } catch (e) {
+    console.error("Presence list failed", e);
+    res.status(500).json({
+      success: false,
+      message: "Failed to list presence",
+    });
+  }
+};

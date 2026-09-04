@@ -57,7 +57,8 @@ def emit_ai_job(payload: dict) -> bool:
             },
         )
         producer.flush(timeout=2)
+        log("kafka_queued", event="ai.jobs", jobId=payload.get("jobId"))
         return True
     except Exception as e:
-        log("kafka_produce_failed", event="ai.jobs", error=str(e))
+        log("kafka_produce_failed", event="ai.jobs", jobId=payload.get("jobId"), error=str(e))
         return False

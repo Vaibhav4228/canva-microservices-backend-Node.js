@@ -50,6 +50,7 @@ async function invalidateDesignsCache(userId) {
 }
 
 module.exports = {
+  getRedis,
   getCachedDesigns,
   setCachedDesigns,
   invalidateDesignsCache,

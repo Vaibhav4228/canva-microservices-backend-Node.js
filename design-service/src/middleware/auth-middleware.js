@@ -7,7 +7,11 @@ const authenticatedRequest = (req, res, next) => {
         });
     }
 
-    req.user = { userId };
+    req.user = {
+        userId,
+        email: req.headers["x-user-email"] || "",
+        name: req.headers["x-user-name"] || "",
+    };
     next();
 };
 

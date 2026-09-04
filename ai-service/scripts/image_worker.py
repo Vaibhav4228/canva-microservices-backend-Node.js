@@ -35,6 +35,7 @@ for message in consumer:
     try:
         if not job_id or not prompt:
             raise ValueError("jobId and prompt are required")
+        log("image_worker_got", jobId=job_id, prompt=prompt[:80])
         update_job(job_id, status="running")
         result = generate_image(prompt)
         update_job(

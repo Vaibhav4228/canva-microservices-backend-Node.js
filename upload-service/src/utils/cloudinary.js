@@ -19,4 +19,11 @@ const uploadMediaToCloudinary = (file) => {
   });
 };
 
-module.exports = { uploadMediaToCloudinary };
+const uploadUrlToCloudinary = (url, folder) => {
+  return cloudinary.uploader.upload(url, {
+    resource_type: "image",
+    folder: folder || undefined,
+  });
+};
+
+module.exports = { uploadMediaToCloudinary, uploadUrlToCloudinary };

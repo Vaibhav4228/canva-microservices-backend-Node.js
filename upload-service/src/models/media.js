@@ -9,6 +9,11 @@ const mediaSchema = new mongoose.Schema({
   size: Number,
   width: Number,
   height: Number,
+  source: {
+    type: String,
+    enum: ["upload", "ai"],
+    default: "upload",
+  },
   createdAt: {
     type: Date,
     default: Date.now,
