@@ -5,6 +5,7 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 
 from log import log
 
@@ -57,6 +58,28 @@ def health():
         "service": SERVICE,
         "port": PORT,
     }
+
+
+@app.get("/ready")
+def ready():
+    checks = {"redis": False, "vector": False}
+    try:
+        from jobs import get_redis
+
+        get_redis().ping()
+        checks["redis"] = True
+    except Exception:
+        pass
+    try:
+        vector_info()
+        checks["vector"] = True
+    except Exception:
+        pass
+    all_ready = all(checks.values())
+    return JSONResponse(
+        status_code=200 if all_ready else 503,
+        content={"ready": all_ready, "service": SERVICE, "checks": checks},
+    )
 
 
 @app.get("/vector/info", response_model=VectorInfoResponse)

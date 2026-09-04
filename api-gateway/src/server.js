@@ -48,6 +48,7 @@ app.get("/ready", async (req, res) => {
     design: await pingReady(process.env.DESIGN),
     upload: await pingReady(process.env.UPLOAD),
     subscription: await pingReady(process.env.SUBSCRIPTION),
+    ai: await pingReady(process.env.AI),
   };
   const ready = Object.values(checks).every(Boolean);
   res.status(ready ? 200 : 503).json({

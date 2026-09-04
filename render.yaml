@@ -1,0 +1,135 @@
+services:
+  - type: web
+    name: canva-api-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: ./api-gateway
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: RATE_LIMIT_MAX
+        value: "60"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: DESIGN
+        fromService:
+          type: web
+          name: canva-design-service
+          property: hostport
+      - key: UPLOAD
+        fromService:
+          type: web
+          name: canva-upload-service
+          property: hostport
+      - key: SUBSCRIPTION
+        fromService:
+          type: web
+          name: canva-subscription-service
+          property: hostport
+      - key: AI
+        fromService:
+          type: web
+          name: canva-ai-service
+          property: hostport
+
+  - type: web
+    name: canva-design-service
+    runtime: docker
+    plan: free
+    dockerfilePath: ./design-service/Dockerfile
+    dockerContext: ./design-service
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+
+  - type: web
+    name: canva-upload-service
+    runtime: docker
+    plan: free
+    dockerfilePath: ./upload-service/Dockerfile
+    dockerContext: ./upload-service
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: cloud_name
+        sync: false
+      - key: api_key
+        sync: false
+      - key: api_secret
+        sync: false
+
+  - type: web
+    name: canva-subscription-service
+    runtime: docker
+    plan: free
+    dockerfilePath: ./subscription-service/Dockerfile
+    dockerContext: ./subscription-service
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: FREE_AI_LIMIT
+        value: "5"
+      - key: PREMIUM_AI_LIMIT
+        value: "200"
+      - key: PREMIUM_AMOUNT
+        value: "49900"
+      - key: PREMIUM_CURRENCY
+        value: INR
+
+  - type: web
+    name: canva-ai-service
+    runtime: docker
+    plan: free
+    dockerfilePath: ./ai-service/Dockerfile
+    dockerContext: ./ai-service
+    healthCheckPath: /health
+    envVars:
+      - key: KAFKA_DISABLED
+        value: "true"
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      - key: UPSTASH_VECTOR_REST_URL
+        sync: false
+      - key: UPSTASH_VECTOR_REST_TOKEN
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: HF_IMAGE_MODEL
+        value: black-forest-labs/FLUX.1-schnell
+      - key: POLLINATIONS_ENABLED
+        value: "true"
+      - key: EMBEDDING_MODEL
+        value: sentence-transformers/all-MiniLM-L6-v2
